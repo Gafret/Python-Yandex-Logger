@@ -1,5 +1,9 @@
 import logging
 import sys
+import threading
+from concurrent.futures.process import ProcessPoolExecutor
+from concurrent.futures.thread import ThreadPoolExecutor
+from queue import Queue
 from time import time
 from logging import LogRecord
 from typing import Type
@@ -33,10 +37,58 @@ def get_curr_timestamp() -> Type[timestamp_pb2.Timestamp]:
     return timestamp
 
 
+class Emitter:
+    def __init__(self, client: Client, destination: Destination, resource: LogEntryResource, log_batch_size: int = 10, commit_period: int = 10):
+        self.client = client
+        self.destination = destination
+        self.resource = resource
+        self.log_batch_size = log_batch_size
+
+        self.logs_buffer = []
+        self.commit_period = commit_period
+        self.last_commit = time()
+
+    @property
+    def period_passed(self):
+        return time() >= self.last_commit + self.commit_period
+
+    def write(self):
+        self.client.Write()
+
+    def empty_buffer(self):
+        self.logs_buffer = []
+
+    def set_commit_time(self):
+        self.last_commit = time()
+
+    def __call__(self, entry: IncomingLogEntry):
+        self.client.Write(self.logs_buffer)
+
+
+class ThreadManager:
+    def __init__(self, max_workers: int = 1):
+        self.element_queue = Queue()
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            _ = [executor.submit(self.process_element, queue=self.element_queue) for _ in range(max_workers)]
+
+    @staticmethod
+    def process_element(*, queue: Queue = None):
+        emitter = Emitter()
+        while True:
+            print(f"thread {threading.current_thread()}")
+            value = queue.get()
+            if isinstance(value, IncomingLogEntry):
+                emitter(value)
+            else:
+                break
+
+
 class YandexCloudHandler(logging.Handler):
 
     client: Client | None = None
 
+    # todo make client instance field
     def __new__(cls, credentials: dict[str, str], **kwargs):
         if cls.client is None:
             cls.client = yandexcloud.SDK(**credentials).client(LogIngestionServiceStub)
@@ -65,16 +117,14 @@ class YandexCloudHandler(logging.Handler):
         self.logs_buffer = []
         self.last_commit = time()
 
+        self.emitter = Emitter(self.client, self.destination, self.resource, self.log_batch_size, self.commit_period)
+
     def emit(self, record: LogRecord):
         try:
             new_entry = self.build_payload(record)
             self.logs_buffer.append(new_entry)
 
-            if len(self.logs_buffer) >= self.log_batch_size or time() >= self.last_commit + self.commit_period:
-                request = self.build_request()
-                self.client.Write(request)
-                self.empty_buffer()
-                self.last_commit = time()
+            self.emitter(new_entry)
         except Exception:
             record.exc_info = sys.exc_info()
             self.handleError(record)
@@ -94,12 +144,6 @@ class YandexCloudHandler(logging.Handler):
         sys.stdout.writelines(logs)
 
         super().handleError(record)
-
-    def concurrent_write(self, request):
-        print("WRITE")
-        self.client.Write(request)
-        self.empty_buffer()
-        self.last_commit = time()
 
     def build_request(self) -> WriteRequest:
         write_request = WriteRequest(
