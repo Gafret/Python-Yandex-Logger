@@ -81,8 +81,6 @@ class YandexCloudHandler(logging.Handler):
         self.send = Emitter(
             client=self.client,
             logs_buffer=self.logs_buffer,
-            log_batch_size=log_batch_size,
-            commit_period=commit_period
         )
 
     def emit(self, record: LogRecord):
@@ -138,4 +136,32 @@ class YandexCloudHandler(logging.Handler):
     def period_passed(self):
         return time() >= self.last_commit + self.commit_period
 
+
+if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.NOTSET)
+
+    handler = YandexCloudHandler(
+        credentials={
+            "token": "y0__xCslpTUARjB3RMgxo7T4RO3Px2lT_SHr3FWW7X61k0NOq6JxA",
+        },
+        log_group_id="e23qo0v3d2e48ahgemca",
+    )
+
+    logger.addHandler(hdlr=handler)
+
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
+
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
+
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
+    logger.warning("Test Log With Thread")
 
