@@ -9,7 +9,9 @@ from yandex.cloud.logging.v1.log_entry_pb2 import Destination
 from yandex.cloud.logging.v1.log_ingestion_service_pb2_grpc import LogIngestionServiceStub
 from yandex.cloud.logging.v1.log_resource_pb2 import LogEntryResource
 
-from .emitters import Emitter, LogRecordPair
+from .emitters import Emitter
+from .types import LogRecordPair
+from .utils import write_to_console
 
 
 class YandexCloudHandler(logging.Handler):
@@ -43,8 +45,8 @@ class YandexCloudHandler(logging.Handler):
 
         self.log_batch_size = log_batch_size
         self.commit_period = commit_period
-        self.logs_buffer = []
-        self.last_commit = time()
+        self._logs_buffer = []
+        self._last_commit = time()
 
         client = yandexcloud.SDK(**credentials).client(LogIngestionServiceStub)
         destination = Destination(log_group_id=log_group_id, folder_id=folder_id)
@@ -59,11 +61,10 @@ class YandexCloudHandler(logging.Handler):
     def emit(self, record: LogRecord):
         try:
             new_entry = LogRecordPair(record=record, formatted_msg=self.format(record))
-            self.logs_buffer.append(new_entry)
+            self._logs_buffer.append(new_entry)
 
-            if len(self.logs_buffer) >= self.log_batch_size or self.period_passed:
-                logs = self.logs_buffer[:]  # make slice copy so it doesn't change in thread
-                th = threading.Thread(target=self.emitter.send, kwargs={"log_records": logs})
+            if len(self._logs_buffer) >= self.log_batch_size or self.period_passed:
+                th = threading.Thread(target=self.emitter.send, kwargs={"log_records": self._logs_buffer})
                 th.start()
 
                 self.empty_buffer()
@@ -74,26 +75,23 @@ class YandexCloudHandler(logging.Handler):
             self.handleError(record)
 
     def handleError(self, record):
-        self.write_to_console()
+        write_to_console(self._logs_buffer)
+        self.empty_buffer()
 
         super().handleError(record)
 
-    def write_to_console(self):
-        logs = [str(log["formatted_msg"]) + "\n" for log in self.logs_buffer]
-        sys.stdout.writelines(logs)
-
     def empty_buffer(self):
-        self.logs_buffer = []
+        self._logs_buffer = []
 
     def set_commit_time(self):
-        self.last_commit = time()
+        self._last_commit = time()
 
     @property
     def period_passed(self) -> bool:
-        return time() >= self.last_commit + self.commit_period
+        return time() >= self._last_commit + self.commit_period
 
     def __del__(self):
-        self.write_to_console()
+        write_to_console(self._logs_buffer)
 
 
 
