@@ -29,7 +29,7 @@ logger.addHandler(handler)
 time.sleep(6)
 logger.warning(
     "Oh no...",
-    extra={"payload": {"tags": "service"}}
+    extra={"json_payload": {"tags": "service"}}
 )
 ```
 
