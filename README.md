@@ -9,7 +9,7 @@ pip install git+https://github.com/Gafret/Python-Yandex-Logger.git
 import time
 import logging
 
-from src.logging_yandex.handlers import YandexCloudHandler
+from logging_yandex import YandexCloudHandler
 
 handler = YandexCloudHandler(
     credentials={
