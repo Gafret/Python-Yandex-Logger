@@ -7,7 +7,7 @@ from yandex.cloud.logging.v1.log_ingestion_service_pb2 import WriteRequest
 from yandex.cloud.logging.v1.log_resource_pb2 import LogEntryResource
 from yandexcloud._sdk import Client
 
-from src.logging_yandex.utils import get_curr_timestamp
+from .utils import get_curr_timestamp
 
 TRACE = 60
 DEFAULT_LOG_LEVEL: LogLevel = LogLevel.WARN  # used when there is no log level with 'levelno' from LogRecord in _MAPPED_LOG_LEVELS
