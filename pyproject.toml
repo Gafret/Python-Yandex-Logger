@@ -1,0 +1,29 @@
+[project]
+name = "python_logging_yandex"
+version = "0.0.1"
+authors = [
+  { name="Gafret Kelp" },
+]
+description = "Logging handler for Yandex Cloud Logging service"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+dependencies = [
+    "yandexcloud>=0.350.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/Gafret/Python-Yandex-Logger"
+Issues = "https://github.com/Gafret/Python-Yandex-Logger/issues"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["./src"]

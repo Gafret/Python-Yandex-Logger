@@ -9,7 +9,7 @@ from yandex.cloud.logging.v1.log_entry_pb2 import Destination
 from yandex.cloud.logging.v1.log_ingestion_service_pb2_grpc import LogIngestionServiceStub
 from yandex.cloud.logging.v1.log_resource_pb2 import LogEntryResource
 
-from logging_yandex.emitters import Emitter, LogRecordPair
+from src.logging_yandex.emitters import Emitter, LogRecordPair
 
 
 class YandexCloudHandler(logging.Handler):
