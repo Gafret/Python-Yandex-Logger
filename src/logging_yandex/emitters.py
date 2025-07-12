@@ -1,10 +1,9 @@
 import logging
-from typing import Iterable, TypedDict
+from typing import Iterable, Any
 
 from yandex.cloud.logging.v1.log_entry_pb2 import IncomingLogEntry, Destination, LogLevel
 from yandex.cloud.logging.v1.log_ingestion_service_pb2 import WriteRequest
 from yandex.cloud.logging.v1.log_resource_pb2 import LogEntryResource
-from yandexcloud._sdk import Client
 
 from .types import LogRecordPair, EmitterException
 from .utils import get_curr_timestamp, write_to_console
@@ -30,7 +29,7 @@ class Emitter:
     Emitter class that sends write requests to Yandex Cloud Logging service
     """
 
-    def __init__(self, client: Client, destination: Destination, resource: LogEntryResource):
+    def __init__(self, client: Any, destination: Destination, resource: LogEntryResource):
         self.client = client
         self.destination = destination
         self.resource = resource

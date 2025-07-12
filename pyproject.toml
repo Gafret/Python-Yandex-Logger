@@ -14,7 +14,7 @@ classifiers = [
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 dependencies = [
-    "yandexcloud"
+    "yandexcloud>=0.295.0"
 ]
 
 [project.urls]
