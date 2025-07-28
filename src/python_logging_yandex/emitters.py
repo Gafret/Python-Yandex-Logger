@@ -1,5 +1,6 @@
 import logging
 from typing import Iterable, Any
+from abc import ABC, abstractmethod
 
 from yandex.cloud.logging.v1.log_entry_pb2 import IncomingLogEntry, Destination, LogLevel
 from yandex.cloud.logging.v1.log_ingestion_service_pb2 import WriteRequest
@@ -24,7 +25,14 @@ _MAPPED_LOG_LEVELS = {
 logging.addLevelName(TRACE, "TRACE")
 
 
-class Emitter:
+class BaseEmitter(ABC):
+
+    @abstractmethod
+    def send(self, log_records: Iterable[LogRecordPair]):
+        pass
+
+
+class Emitter(BaseEmitter):
     """
     Emitter class that sends write requests to Yandex Cloud Logging service
     """
@@ -70,3 +78,10 @@ class Emitter:
         )
 
         return write_request
+
+
+class LocalEmitter(BaseEmitter):
+
+    def send(self, log_records: Iterable[LogRecordPair]):
+        for log in log_records:
+            print(f"USING LOCAL ENVIRONMENT: {log['formatted_msg']}")

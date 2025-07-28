@@ -9,7 +9,7 @@ from yandex.cloud.logging.v1.log_entry_pb2 import Destination
 from yandex.cloud.logging.v1.log_ingestion_service_pb2_grpc import LogIngestionServiceStub
 from yandex.cloud.logging.v1.log_resource_pb2 import LogEntryResource
 
-from .emitters import Emitter
+from .emitters import Emitter, LocalEmitter
 from .types import LogRecordPair
 from .utils import write_to_console
 
@@ -29,6 +29,7 @@ class YandexCloudHandler(logging.Handler):
             resource_id: str = None,
             log_batch_size: int = 10,
             commit_period: int = 10,
+            is_local: bool = True,
             **kwargs,
     ):
         """
@@ -48,15 +49,18 @@ class YandexCloudHandler(logging.Handler):
         self._logs_buffer = []
         self._last_commit = time()
 
-        client = yandexcloud.SDK(**credentials).client(LogIngestionServiceStub)
-        destination = Destination(log_group_id=log_group_id, folder_id=folder_id)
-        resource = LogEntryResource(type=resource_type, id=resource_id)
+        if is_local:
+            self.emitter = LocalEmitter()
+        else:
+            client = yandexcloud.SDK(**credentials).client(LogIngestionServiceStub)
+            destination = Destination(log_group_id=log_group_id, folder_id=folder_id)
+            resource = LogEntryResource(type=resource_type, id=resource_id)
 
-        self.emitter = Emitter(
-            client=client,
-            destination=destination,
-            resource=resource,
-        )
+            self.emitter = Emitter(
+                client=client,
+                destination=destination,
+                resource=resource,
+            )
 
     def emit(self, record: LogRecord):
         try:
