@@ -48,19 +48,14 @@ class YandexCloudHandler(logging.Handler):
         self.commit_period = commit_period
         self._logs_buffer = []
         self._last_commit = time()
+        self.is_local = is_local
 
-        if is_local:
-            self.emitter = LocalEmitter()
-        else:
-            client = yandexcloud.SDK(**credentials).client(LogIngestionServiceStub)
-            destination = Destination(log_group_id=log_group_id, folder_id=folder_id)
-            resource = LogEntryResource(type=resource_type, id=resource_id)
-
-            self.emitter = Emitter(
-                client=client,
-                destination=destination,
-                resource=resource,
-            )
+        self.emitter = None
+        self._credentials = credentials
+        self._log_group_id = log_group_id
+        self._folder_id = folder_id
+        self._resource_type = resource_type
+        self._resource_id = resource_id
 
     def emit(self, record: LogRecord):
         try:
@@ -68,6 +63,9 @@ class YandexCloudHandler(logging.Handler):
             self._logs_buffer.append(new_entry)
 
             if len(self._logs_buffer) >= self.log_batch_size or self.period_passed:
+                if self.emitter is None:
+                    self.setup_emitter()
+
                 th = threading.Thread(target=self.emitter.send, kwargs={"log_records": self._logs_buffer})
                 th.start()
 
@@ -77,6 +75,23 @@ class YandexCloudHandler(logging.Handler):
         except Exception:
             record.exc_info = sys.exc_info()
             self.handleError(record)
+
+    def setup_emitter(self):
+        if self.is_local:
+            self.emitter = LocalEmitter()
+        else:
+            if self._log_group_id is None and self._folder_id is None:
+                raise ValueError("No destination. Provide either one of log_group_id or folder_id")
+
+            client = yandexcloud.SDK(**self._credentials).client(LogIngestionServiceStub)
+            destination = Destination(log_group_id=self._log_group_id, folder_id=self._folder_id)
+            resource = LogEntryResource(type=self._resource_type, id=self._resource_id)
+
+            self.emitter = Emitter(
+                client=client,
+                destination=destination,
+                resource=resource,
+            )
 
     def handleError(self, record):
         write_to_console(self._logs_buffer)
