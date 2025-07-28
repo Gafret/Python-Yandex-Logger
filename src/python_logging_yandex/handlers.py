@@ -29,7 +29,7 @@ class YandexCloudHandler(logging.Handler):
             resource_id: str = None,
             log_batch_size: int = 10,
             commit_period: int = 10,
-            is_local: bool = True,
+            is_local: bool = False,
             **kwargs,
     ):
         """
