@@ -79,6 +79,9 @@ class Emitter(BaseEmitter):
 
         return write_request
 
+    def __str__(self):
+        return f"Emitter: \n[Destination]: {self.destination}\n[Resource]: {self.resource}"
+
 
 class LocalEmitter(BaseEmitter):
 
